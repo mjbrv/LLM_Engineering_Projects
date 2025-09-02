@@ -1,0 +1,8 @@
+[33m9d55b9f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mnews_RA[m[33m, [m[1;31morigin/news_RA[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Enhanced GitHub Activity Bot with exclusion fixes, merge functionality, and contribution tracking improvements
+github_activity_bot/DIRECTORY_GUIDE.md
+github_activity_bot/GITHUB_CONTRIBUTIONS_FIX.md
+github_activity_bot/config.json
+github_activity_bot/git_merge_bot.py
+github_activity_bot/git_push_bot.py
+github_activity_bot/run_git_bot.sh
+github_activity_bot/run_git_merge.sh
