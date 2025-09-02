@@ -5,7 +5,7 @@
     "auto_stage_all": true,
     "create_branch_if_missing": true,
     "pull_before_push": true,
-    "commit_message_template": "Auto-commit: Updated project files",
+    "commit_message_template": "Updated project files",
     "excluded_files": [
         "*.log",
         "__pycache__/*",
