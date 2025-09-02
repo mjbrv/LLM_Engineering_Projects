@@ -47,6 +47,7 @@ class GitMergeBot:
         """
         self.config = self._load_config(config_path)
         self.repo_path = self.config.get('repo_path', os.getcwd())
+        self._setup_git_user()
         logger.info(f"Initialized GitMergeBot for repository: {self.repo_path}")
     
     def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
@@ -70,6 +71,23 @@ class GitMergeBot:
                 logger.info("Using default configuration")
         
         return default_config
+    
+    def _setup_git_user(self):
+        """Setup git user configuration from config file"""
+        git_user = self.config.get('git_user', {})
+        name = git_user.get('name')
+        email = git_user.get('email')
+        
+        if name and email:
+            try:
+                # Set git user for this repository
+                self._run_command(['git', 'config', 'user.name', name], check_return_code=False)
+                self._run_command(['git', 'config', 'user.email', email], check_return_code=False)
+                logger.info(f"Git user configured: {name} <{email}>")
+            except subprocess.CalledProcessError:
+                logger.warning("Failed to configure git user - using system defaults")
+        else:
+            logger.debug("No git user configuration found in config file")
     
     def _run_command(self, command: list, check_return_code: bool = True) -> subprocess.CompletedProcess:
         """

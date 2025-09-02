@@ -46,6 +46,7 @@ class GitPushBot:
         """
         self.config = self._load_config(config_path)
         self.repo_path = self.config.get('repo_path', os.getcwd())
+        self._setup_git_user()
         logger.info(f"Initialized GitPushBot for repository: {self.repo_path}")
     
     def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
@@ -70,6 +71,23 @@ class GitPushBot:
                 logger.info("Using default configuration")
         
         return default_config
+    
+    def _setup_git_user(self):
+        """Setup git user configuration from config file"""
+        git_user = self.config.get('git_user', {})
+        name = git_user.get('name')
+        email = git_user.get('email')
+        
+        if name and email:
+            try:
+                # Set git user for this repository
+                self._run_command(['git', 'config', 'user.name', name], check_return_code=False)
+                self._run_command(['git', 'config', 'user.email', email], check_return_code=False)
+                logger.info(f"Git user configured: {name} <{email}>")
+            except subprocess.CalledProcessError:
+                logger.warning("Failed to configure git user - using system defaults")
+        else:
+            logger.debug("No git user configuration found in config file")
     
     def _run_command(self, command: list, check_return_code: bool = True) -> subprocess.CompletedProcess:
         """
@@ -211,31 +229,61 @@ class GitPushBot:
         """
         try:
             if files is None:
-                # Stage all changes except excluded files/folders
-                excluded_patterns = self.config.get('excluded_files', [])
-                # Always exclude the github_activity_bot folder
-                excluded_patterns.append('github_activity_bot/')
-                excluded_patterns.append('github_activity_bot/*')
+                # Get excluded patterns from config
+                excluded_patterns = self.config.get('excluded_files', []).copy()
                 
-                # Add all files first
+                # Always exclude the github_activity_bot folder regardless of current directory
+                bot_exclusions = [
+                    'github_activity_bot/',
+                    'github_activity_bot/*',
+                    'github_activity_bot/**',
+                    './github_activity_bot/',
+                    './github_activity_bot/*'
+                ]
+                excluded_patterns.extend(bot_exclusions)
+                
+                # Safety check: warn if running from bot directory
+                current_dir = os.path.basename(os.getcwd())
+                if current_dir == 'github_activity_bot':
+                    logger.warning("⚠️  RUNNING FROM BOT DIRECTORY!")
+                    logger.warning("⚠️  For best results, run from repository root directory")
+                    logger.warning("⚠️  This may cause the bot folder to be included in commits")
+                
+                # Stage all changes first
                 self._run_command(['git', 'add', '.'])
+                logger.debug("Added all files to staging")
                 
-                # Then unstage excluded patterns
+                # Remove excluded patterns from staging
+                excluded_count = 0
                 for pattern in excluded_patterns:
                     try:
-                        # Reset specific patterns that were added
-                        self._run_command(['git', 'reset', 'HEAD', pattern], check_return_code=False)
-                        logger.debug(f"Unstaged pattern: {pattern}")
+                        result = self._run_command(['git', 'reset', 'HEAD', pattern], check_return_code=False)
+                        if result.returncode == 0:
+                            excluded_count += 1
+                            logger.debug(f"Unstaged pattern: {pattern}")
                     except subprocess.CalledProcessError:
-                        # Pattern might not exist, which is fine
-                        pass
+                        pass  # Pattern might not exist
                 
-                logger.info("Staged all changes (excluding github_activity_bot and configured exclusions)")
+                if excluded_count > 0:
+                    logger.info(f"Staged all changes (excluded {excluded_count} patterns including github_activity_bot)")
+                else:
+                    logger.info("Staged all changes (no exclusion patterns matched)")
+                    
             else:
-                # Stage specific files
+                # Stage specific files (make sure none are from bot directory)
+                safe_files = []
                 for file in files:
-                    self._run_command(['git', 'add', file])
-                logger.info(f"Staged files: {', '.join(files)}")
+                    if not file.startswith('github_activity_bot/') and 'github_activity_bot' not in file:
+                        safe_files.append(file)
+                        self._run_command(['git', 'add', file])
+                    else:
+                        logger.warning(f"Skipped bot directory file: {file}")
+                
+                if safe_files:
+                    logger.info(f"Staged files: {', '.join(safe_files)}")
+                else:
+                    logger.warning("No safe files to stage (all were bot directory files)")
+                    
             return True
             
         except subprocess.CalledProcessError as e:

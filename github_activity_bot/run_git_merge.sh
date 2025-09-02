@@ -75,7 +75,9 @@ interactive_mode() {
     echo -e "${YELLOW}Executing: python git_merge_bot.py $cmd_args${NC}"
     echo ""
     
-    # Execute the command
+    # Execute the command from repository root
+    REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    echo -e "${BLUE}Repository root: $REPO_ROOT${NC}"
     cd "$REPO_ROOT"
     eval "python github_activity_bot/git_merge_bot.py $cmd_args"
 }
@@ -181,8 +183,9 @@ if [[ -n "$CLEANUP_FLAG" ]]; then
 fi
 echo ""
 
-# Change to repository root and execute
-echo -e "${BLUE}Changing to repository root: $REPO_ROOT${NC}"
+# Ensure we're in repository root and execute
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+echo -e "${BLUE}Repository root: $REPO_ROOT${NC}"
 cd "$REPO_ROOT"
 
 echo -e "${BLUE}Executing merge bot...${NC}"

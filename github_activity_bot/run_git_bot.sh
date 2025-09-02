@@ -65,9 +65,11 @@ run_git_bot() {
     echo -e "${YELLOW}Message:${NC} $commit_message"
     echo ""
     
-    # Change to script directory and run the bot
-    cd "$SCRIPT_DIR"
-    python git_push_bot.py "$branch_name" "$commit_message" $additional_args
+    # Change to repository root (not script directory) to run the bot
+    REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    echo -e "${BLUE}Repository root: $REPO_ROOT${NC}"
+    cd "$REPO_ROOT"
+    python github_activity_bot/git_push_bot.py "$branch_name" "$commit_message" $additional_args
     
     local exit_code=$?
     
