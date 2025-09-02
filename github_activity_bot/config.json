@@ -13,7 +13,9 @@
         ".env",
         "node_modules/*",
         ".git/*",
-        "*.tmp"
+        "*.tmp",
+        "github_activity_bot/",
+        "github_activity_bot/*"
     ],
     "git_user": {
         "name": "",

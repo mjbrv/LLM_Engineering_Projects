@@ -204,16 +204,33 @@ class GitPushBot:
         Stage changes for commit
         
         Args:
-            files: List of files to stage (if None, stages all changes)
+            files: List of files to stage (if None, stages all changes except excluded)
             
         Returns:
             True if successful, False otherwise
         """
         try:
             if files is None:
-                # Stage all changes
+                # Stage all changes except excluded files/folders
+                excluded_patterns = self.config.get('excluded_files', [])
+                # Always exclude the github_activity_bot folder
+                excluded_patterns.append('github_activity_bot/')
+                excluded_patterns.append('github_activity_bot/*')
+                
+                # Add all files first
                 self._run_command(['git', 'add', '.'])
-                logger.info("Staged all changes")
+                
+                # Then unstage excluded patterns
+                for pattern in excluded_patterns:
+                    try:
+                        # Reset specific patterns that were added
+                        self._run_command(['git', 'reset', 'HEAD', pattern], check_return_code=False)
+                        logger.debug(f"Unstaged pattern: {pattern}")
+                    except subprocess.CalledProcessError:
+                        # Pattern might not exist, which is fine
+                        pass
+                
+                logger.info("Staged all changes (excluding github_activity_bot and configured exclusions)")
             else:
                 # Stage specific files
                 for file in files:
