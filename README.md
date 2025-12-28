@@ -10,6 +10,10 @@ A collection of hands-on LLM (Large Language Model) engineering projects demonst
 - [Project 2: Synthetic Data Generator](#project-2-synthetic-data-generator)
 - [Project 3: Code Generator with HuggingFace Deployment](#project-3-code-generator-with-huggingface-deployment)
 - [Project 4: Python to C++ Converter](#project-4-python-to-c-converter)
+- [Project 5: Your Local RAG Assistant](#project-5-your-local-rag-assistant)
+- [Project 6: LangGraph](#project-6-langgraph)
+- [Project 7: RAG Solutions](#project-7-rag-solutions)
+- [Project 8: News Research Assistant](#project-8-news-research-assistant)
 - [Getting Started](#getting-started)
 - [Requirements](#requirements)
 
@@ -776,6 +780,1050 @@ jupyter notebook
 
 ---
 
+## Project 5: Your Local RAG Assistant
+
+A complete Retrieval-Augmented Generation (RAG) system that creates and queries a local vector database from your documents, enabling accurate question-answering with source attribution.
+
+### 🎯 Overview
+
+This project demonstrates building a production-ready RAG system:
+- Create vector databases from local documents (PDF, DOCX)
+- Use free HuggingFace embeddings or OpenAI embeddings
+- Visualize embeddings in 2D using t-SNE
+- Query documents with natural language
+- Get answers with source attribution
+- Interactive Gradio chat interface
+
+### 📂 Project Structure
+
+```
+5_Your_Local_RAG_Assistant/
+├── 5.1_Your_Local_RAG_Creation.ipynb    # Vector database creation
+└── 5.2_Your_Local_RAG_Retreival.ipynb   # Query and retrieval system
+```
+
+### 🚀 Features
+
+#### Part 1: RAG Creation (5.1)
+- **Document Discovery**: Recursively finds PDF and DOCX files
+- **Document Loading**: Uses LangChain loaders (PyPDFLoader, Docx2txtLoader)
+- **Text Chunking**: Splits documents into manageable chunks with overlap
+- **Embedding Options**:
+  - OpenAI Embeddings (paid, high quality)
+  - HuggingFace Sentence Transformers (free, good quality)
+- **Vector Database**: Chroma DB with SQLite backend
+- **Visualization**: 2D t-SNE plots of embedding space
+
+**Key Features:**
+```python
+# Find and load documents
+document_paths = find_documents(search_directory)
+documents = load_documents(document_paths)
+
+# Chunk and embed
+text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+chunks = text_splitter.split_documents(documents)
+
+# Create vector store with free embeddings
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+vectorstore = Chroma.from_documents(documents=chunks, embedding=embeddings, persist_directory="mj_vector_db")
+```
+
+#### Part 2: RAG Retrieval (5.2)
+- **Vector Database Loading**: Load existing Chroma databases
+- **Conversational Retrieval**: LangChain ConversationalRetrievalChain
+- **Source Attribution**: Includes source documents in responses
+- **Multi-Model Support**: Switch between GPT and Claude
+- **Memory**: Conversation history tracking
+- **Streaming Responses**: Real-time answer generation
+- **Gradio Chat Interface**: User-friendly web UI
+
+**Advanced Features:**
+```python
+# Custom prompt with source information
+template = """Answer the question based on the following context and include relevant source information:
+
+Context with Sources: {context}
+Question: {question}
+
+Please provide your answer along with the sources used:"""
+
+# Format documents with metadata
+def format_docs_with_metadata(docs):
+    formatted_docs = []
+    for doc in docs:
+        metadata_str = "\n".join([f"{k}: {v}" for k, v in doc.metadata.items()])
+        formatted_doc = f"\n---\nContent: {doc.page_content}\nSource Information:\n{metadata_str}\n---"
+        formatted_docs.append(formatted_doc)
+    return "\n".join(formatted_docs)
+```
+
+### 💡 Use Cases
+
+- **Knowledge Base Q&A**: Query company documentation
+- **Research Assistant**: Search through research papers
+- **Legal Document Analysis**: Find relevant clauses and precedents
+- **Technical Documentation**: Get answers from manuals and guides
+- **Personal Knowledge Management**: Query your notes and documents
+
+### 🎨 Visualization Features
+
+The project includes beautiful 2D visualizations of the embedding space:
+- **t-SNE Dimensionality Reduction**: 384D vectors → 2D plot
+- **Interactive Plotly Charts**: Hover to see document content
+- **Color-Coded by Type**: Visualize document clustering
+- **Metadata Display**: See source, type, and content preview
+
+### 📊 Technical Details
+
+**Embedding Dimensions:**
+- HuggingFace `all-MiniLM-L6-v2`: 384 dimensions
+- OpenAI `text-embedding-ada-002`: 1536 dimensions
+
+**Chunking Strategy:**
+- Chunk size: 1000 characters
+- Overlap: 200 characters
+- Preserves context across chunks
+
+**Vector Database:**
+- Chroma DB (open-source)
+- SQLite backend
+- Persistent storage
+- Fast similarity search
+
+### 🛠️ Usage Examples
+
+**Creating a Vector Database:**
+```python
+# Find all documents
+document_paths = find_documents("/path/to/documents")
+
+# Load and chunk
+documents = load_documents(document_paths)
+text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+chunks = text_splitter.split_documents(documents)
+
+# Create vector store
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+vectorstore = Chroma.from_documents(
+    documents=chunks, 
+    embedding=embeddings, 
+    persist_directory="my_vector_db"
+)
+```
+
+**Querying the Database:**
+```python
+# Load existing database
+vectorstore = load_or_check_db("my_vector_db")
+
+# Set up retrieval chain
+llm = ChatOpenAI(temperature=0.7, model_name="gpt-4o-mini")
+retriever = vectorstore.as_retriever()
+conversation_chain = ConversationalRetrievalChain.from_llm(
+    llm=llm, 
+    retriever=retriever, 
+    memory=memory
+)
+
+# Query
+result = conversation_chain.invoke({"question": "What is quantization?"})
+print(result["answer"])
+```
+
+### 📋 Prerequisites
+
+**Required:**
+- Python 3.8+
+- OpenAI API key (for GPT models) or Anthropic API key (for Claude)
+
+**Python Packages:**
+```bash
+pip install langchain langchain-openai langchain-anthropic langchain-chroma
+pip install sentence-transformers chromadb
+pip install pypdf docx2txt chardet
+pip install scikit-learn plotly gradio
+pip install python-dotenv
+```
+
+**Document Support:**
+- PDF files (via PyPDFLoader)
+- DOCX files (via Docx2txtLoader)
+- Markdown files (via TextLoader)
+
+### 🎯 Key Advantages
+
+**Cost-Effective:**
+- Use free HuggingFace embeddings
+- Use budget-friendly GPT-4o-mini
+- Local vector database (no cloud costs)
+
+**Privacy-First:**
+- Documents never leave your machine
+- Local embedding generation option
+- Self-hosted vector database
+
+**Production-Ready:**
+- Conversation memory
+- Source attribution
+- Error handling
+- Gradio web interface
+
+---
+
+## Project 6: LangGraph
+
+A comprehensive introduction to LangGraph for building stateful, multi-agent AI systems with conditional logic, tool calling, and memory.
+
+### 🎯 Overview
+
+This project teaches LangGraph fundamentals through progressive examples:
+- Build simple state graphs with conditional edges
+- Add reasoning and tool calling capabilities
+- Implement persistent memory across conversations
+- Visualize graph structures with Mermaid diagrams
+
+### 📂 Project Structure
+
+```
+6_LangGraph/
+├── 1_SimpleGraph.ipynb                              # Basic graph structure
+├── 2_SimpleGraph_with_Reasoning_&_Tools.ipynb       # Add tools and reasoning
+├── 3_SimpleGraph_with_Reasoning_&_Tools_&_Memory.ipynb  # Add memory
+├── requirements.txt                                  # Dependencies
+└── images/
+    ├── arithmetic.png                                # Graph visualization
+    └── mermaid_image.png                            # Mermaid diagram
+```
+
+### 🚀 Features
+
+#### Notebook 1: Simple Graph
+**Core Concepts:**
+- State management with TypedDict
+- Node creation and execution
+- Conditional edges
+- Graph visualization
+
+**Example:**
+```python
+class state(TypedDict):
+    graph_state: str
+
+def node_1(state):
+    print("---Node 1---")
+    return {"graph_state": state["graph_state"] + ": 1"}
+
+def decide_next(state) -> Literal["node_2","node_3"]:
+    if random.random() < 0.5:
+        return "node_2"
+    return "node_3"
+
+# Build graph
+builder = StateGraph(state)
+builder.add_node("node_1", node_1)
+builder.add_node("node_2", node_2)
+builder.add_node("node_3", node_3)
+builder.add_edge(START, "node_1")
+builder.add_conditional_edges("node_1", decide_next)
+builder.add_edge("node_2", END)
+builder.add_edge("node_3", END)
+
+graph = builder.compile()
+```
+
+#### Notebook 2: Reasoning & Tools
+**Advanced Concepts:**
+- Tool binding to LLMs
+- ReAct pattern (Reasoning + Acting)
+- Arithmetic operations as tools
+- Tool condition checking
+
+**Arithmetic Agent:**
+```python
+def multiply(a, b):
+    """Multiply two numbers"""
+    return a * b
+
+def add(a, b):
+    """Add two numbers"""
+    return a + b
+
+def divide(a, b):
+    """Divide two numbers"""
+    return a / b
+
+tools = [multiply, add, divide]
+llm = ChatOpenAI(model="gpt-4o")
+llm_with_tools = llm.bind_tools(tools)
+
+# Define assistant node
+def assistant(state: MessagesState):
+    return {"messages": [llm_with_tools.invoke([system_message] + state["messages"])]}
+
+# Build graph with tools
+builder = StateGraph(MessagesState)
+builder.add_node("assistant", assistant)
+builder.add_node("tools", ToolNode(tools))
+builder.add_edge(START, "assistant")
+builder.add_conditional_edges("assistant", tools_condition)
+builder.add_edge("tools", "assistant")
+
+react_graph = builder.compile()
+```
+
+**Example Interaction:**
+```
+User: "What is 2 times 3?"
+AI: [Calls multiply tool with a=2, b=3]
+Tool: Returns 6
+AI: "The result of 2 times 3 is 6."
+```
+
+#### Notebook 3: Memory Integration
+**Memory Features:**
+- MemorySaver for persistent state
+- Thread-based conversations
+- Context retention across queries
+- Checkpointing
+
+**With Memory:**
+```python
+memory = MemorySaver()
+thread_id = "1"
+config = {"configurable": {"thread_id": thread_id}}
+
+react_graph = builder.compile(checkpointer=memory)
+
+# First query
+messages = [HumanMessage(content="What is 2 times 3?")]
+result = react_graph.invoke({"messages": messages}, config)
+# AI: "2 times 3 is 6"
+
+# Follow-up query (remembers previous context)
+messages = [HumanMessage(content="Add 4 to it")]
+result = react_graph.invoke({"messages": messages}, config)
+# AI: "Adding 4 to 6 gives you 10"
+```
+
+### 💡 Use Cases
+
+**Agentic Workflows:**
+- Multi-step reasoning tasks
+- Tool-using agents
+- Conditional logic flows
+- State machine implementations
+
+**Business Applications:**
+- Customer service bots with context
+- Data analysis agents
+- Automated workflows
+- Decision trees
+
+**Research & Development:**
+- Agent behavior testing
+- Prompt engineering experiments
+- Tool integration prototypes
+- Graph-based AI architectures
+
+### 🎨 Graph Visualization
+
+LangGraph automatically generates Mermaid diagrams:
+
+```python
+# Generate and save graph visualization
+mermaid_image = Image(graph.get_graph().draw_mermaid_png())
+with open("images/mermaid_image.png", "wb") as f:
+    f.write(mermaid_image.data)
+```
+
+**Visualization Shows:**
+- Nodes (processing steps)
+- Edges (transitions)
+- Conditional branches
+- Start and end points
+
+### 📊 Key Concepts
+
+**State Management:**
+- TypedDict for type safety
+- State updates via return values
+- Immutable state patterns
+
+**Conditional Logic:**
+- Literal types for type-safe routing
+- Dynamic edge selection
+- Probabilistic branching
+
+**Tool Integration:**
+- Function binding to LLMs
+- Automatic tool calling
+- Tool result processing
+
+**Memory & Persistence:**
+- Checkpointing for state recovery
+- Thread-based conversations
+- Cross-session memory
+
+### 🛠️ Technical Architecture
+
+**LangGraph Components:**
+1. **StateGraph**: Main graph builder
+2. **MessagesState**: Built-in state for chat
+3. **ToolNode**: Automatic tool execution
+4. **MemorySaver**: Persistent state storage
+5. **Conditional Edges**: Dynamic routing
+
+**Integration with LangChain:**
+- Uses LangChain tools
+- Compatible with LangChain LLMs
+- Supports LangChain messages
+
+### 📋 Prerequisites
+
+**Required:**
+- OpenAI API key
+- Python 3.8+
+
+**Python Packages:**
+```bash
+pip install langgraph langchain-openai python-dotenv
+```
+
+### 🎯 Learning Path
+
+1. **Start Simple**: Understand state and nodes (Notebook 1)
+2. **Add Intelligence**: Learn tool calling (Notebook 2)
+3. **Add Memory**: Implement persistence (Notebook 3)
+4. **Build Custom**: Create your own agents
+
+### 🔍 Advanced Patterns
+
+**ReAct Pattern:**
+- Reasoning: LLM thinks about what to do
+- Acting: LLM calls appropriate tools
+- Observation: LLM sees tool results
+- Repeat: Continue until answer found
+
+**Multi-Agent Systems:**
+- Multiple specialized agents
+- Agent coordination
+- Shared state management
+- Conditional agent selection
+
+---
+
+## Project 7: RAG Solutions
+
+A comprehensive collection of RAG (Retrieval-Augmented Generation) implementations, from basic to advanced, demonstrating best practices and common pitfalls.
+
+### 🎯 Overview
+
+This project provides a complete RAG learning path:
+- Basic RAG without chunking
+- Chunking strategies
+- Embedding visualizations
+- Complete pipelines with Chroma and FAISS
+- Fixing relevancy issues
+
+### 📂 Project Structure
+
+```
+7_RAG_Solutions/
+├── 1_RAG_Basic.ipynb                                    # Simple RAG
+├── 2_RAG_withChunking.ipynb                            # Add chunking
+├── 3_RAG_withChunkingEmbeddingsVisualizations.ipynb    # Visualize embeddings
+├── 4_1_RAG_CompletePipeline_Chroma.ipynb               # Production Chroma
+├── 4_2_RAG_CompletePiepline_FAISS.ipynb                # Production FAISS
+└── 5_RAG_FixingCommonIssue_Relevency.ipynb             # Improve relevancy
+```
+
+### 🚀 Progressive Learning Path
+
+#### 1. RAG Basic
+**Concepts:**
+- Simple context retrieval
+- Brute-force keyword matching
+- Direct context injection
+- No vector embeddings
+
+**Implementation:**
+```python
+# Simple keyword-based retrieval
+def get_relevant_context(message):
+    relevant_context = []
+    for context_title, context_details in context.items():
+        if context_title.lower() in message.lower():
+            relevant_context.append(context_details)
+    return relevant_context
+
+# Direct context in prompt
+system_message = "You are an expert in answering accurate questions about Insurellm..."
+context = get_relevant_context(user_message)
+response = openai.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[
+        {"role": "system", "content": system_message + "\n" + "\n".join(context)},
+        {"role": "user", "content": user_message}
+    ]
+)
+```
+
+**Limitations:**
+- No semantic understanding
+- Keyword matching only
+- Doesn't scale well
+- No similarity ranking
+
+#### 2. RAG with Chunking
+**Improvements:**
+- Document chunking
+- Chunk size optimization
+- Overlap strategies
+- Better context management
+
+**Chunking Strategy:**
+```python
+text_splitter = CharacterTextSplitter(
+    chunk_size=1000,  # Characters per chunk
+    chunk_overlap=200  # Overlap to preserve context
+)
+chunks = text_splitter.split_documents(documents)
+```
+
+**Benefits:**
+- Manageable context sizes
+- Better token usage
+- Preserved context across boundaries
+- Scalable to large documents
+
+#### 3. RAG with Embeddings & Visualizations
+**Advanced Features:**
+- Vector embeddings
+- Semantic similarity
+- t-SNE visualizations
+- Embedding space analysis
+
+**Visualization:**
+```python
+# Reduce 384D embeddings to 2D
+tsne = TSNE(n_components=2, random_state=42)
+reduced_vectors = tsne.fit_transform(vectors)
+
+# Plot with Plotly
+fig = go.Figure(data=[go.Scatter(
+    x=reduced_vectors[:, 0],
+    y=reduced_vectors[:, 1],
+    mode='markers',
+    text=[f"Type: {t}<br>Text: {d[:100]}..." for t, d in zip(doc_types, documents)],
+    hoverinfo='text'
+)])
+```
+
+**Insights:**
+- See document clustering
+- Identify similar content
+- Debug embedding quality
+- Understand semantic relationships
+
+#### 4. Complete Pipeline - Chroma
+**Production Features:**
+- Chroma vector database
+- Persistent storage
+- Efficient retrieval
+- Metadata filtering
+- Conversational memory
+
+**Implementation:**
+```python
+# Create persistent vector store
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+vectorstore = Chroma.from_documents(
+    documents=chunks,
+    embedding=embeddings,
+    persist_directory="vector_db"
+)
+
+# Set up retrieval chain
+llm = ChatOpenAI(temperature=0.7, model_name="gpt-4o-mini")
+memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
+retriever = vectorstore.as_retriever()
+
+conversation_chain = ConversationalRetrievalChain.from_llm(
+    llm=llm,
+    retriever=retriever,
+    memory=memory
+)
+```
+
+#### 5. Complete Pipeline - FAISS
+**FAISS Advantages:**
+- Extremely fast similarity search
+- Optimized for large-scale
+- GPU acceleration support
+- Multiple index types
+
+**When to Use FAISS:**
+- Large document collections (>100K documents)
+- Need for sub-millisecond search
+- GPU available
+- Read-heavy workloads
+
+**When to Use Chroma:**
+- Smaller collections
+- Need persistence
+- Metadata filtering
+- Easier setup
+
+#### 6. Fixing Relevancy Issues
+**Common Problems:**
+- Irrelevant chunks retrieved
+- Missing relevant information
+- Poor ranking
+- Context window overflow
+
+**Solutions:**
+```python
+# 1. Adjust retrieval parameters
+retriever = vectorstore.as_retriever(
+    search_type="similarity",
+    search_kwargs={"k": 5}  # Retrieve top 5 chunks
+)
+
+# 2. Use MMR (Maximum Marginal Relevance)
+retriever = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={"k": 5, "fetch_k": 20, "lambda_mult": 0.5}
+)
+
+# 3. Hybrid search (keyword + semantic)
+# 4. Re-ranking with cross-encoder
+# 5. Query expansion
+# 6. Metadata filtering
+```
+
+### 💡 Use Cases
+
+**Enterprise Knowledge Management:**
+- Company documentation Q&A
+- Policy and procedure lookup
+- Employee onboarding
+- Compliance checking
+
+**Customer Support:**
+- Product documentation search
+- Troubleshooting guides
+- FAQ automation
+- Ticket resolution
+
+**Research & Analysis:**
+- Literature review
+- Patent search
+- Legal document analysis
+- Medical records query
+
+### 📊 RAG Architecture Comparison
+
+| Feature | Basic RAG | With Chunking | With Embeddings | Complete Pipeline |
+|---------|-----------|---------------|-----------------|-------------------|
+| **Semantic Search** | ❌ | ❌ | ✅ | ✅ |
+| **Scalability** | Low | Medium | High | Very High |
+| **Accuracy** | Low | Medium | High | Very High |
+| **Setup Complexity** | Simple | Simple | Medium | Complex |
+| **Cost** | Very Low | Low | Medium | Medium |
+| **Best For** | Prototypes | Small docs | Medium docs | Production |
+
+### 🛠️ Best Practices
+
+**Chunking:**
+- Chunk size: 500-1000 characters
+- Overlap: 10-20% of chunk size
+- Preserve sentence boundaries
+- Consider document structure
+
+**Embeddings:**
+- Use domain-specific models when available
+- Cache embeddings for reuse
+- Monitor embedding quality
+- Consider fine-tuning for specialized domains
+
+**Retrieval:**
+- Start with k=3-5 chunks
+- Use MMR to reduce redundancy
+- Implement re-ranking for better results
+- Add metadata filters for precision
+
+**Evaluation:**
+- Test with diverse queries
+- Measure retrieval accuracy
+- Monitor response quality
+- Track latency and costs
+
+### 📋 Prerequisites
+
+**Required:**
+- OpenAI API key
+- Python 3.8+
+
+**Python Packages:**
+```bash
+pip install langchain langchain-openai langchain-chroma
+pip install sentence-transformers chromadb faiss-cpu
+pip install pypdf docx2txt
+pip install scikit-learn plotly gradio
+pip install python-dotenv
+```
+
+### 🎯 Key Takeaways
+
+1. **Start Simple**: Basic RAG for prototyping
+2. **Add Chunking**: Essential for scalability
+3. **Use Embeddings**: Semantic search is crucial
+4. **Choose Vector DB**: Chroma for ease, FAISS for scale
+5. **Optimize Relevancy**: Tune retrieval parameters
+6. **Monitor Quality**: Continuous evaluation
+
+---
+
+## Project 8: News Research Assistant
+
+A sophisticated multi-agent system that automatically researches news topics, analyzes articles, and generates comprehensive reports with source attribution.
+
+### 🎯 Overview
+
+This project demonstrates advanced agentic AI patterns:
+- Multi-agent coordination
+- NewsAPI integration
+- Automated article ranking
+- Sentiment and bias analysis
+- Comprehensive report generation
+- Markdown output with citations
+
+### 📂 Project Structure
+
+```
+8_News_Research_Assistant/
+├── runme.py                              # Main entry point
+├── news_research_coordinator_light.py    # Orchestration logic
+├── config.py                             # Configuration
+├── agents/
+│   ├── __init__.py
+│   ├── base_agent.py                    # Base agent class
+│   ├── search_agent.py                  # Article search
+│   ├── analysis_agent.py                # Content analysis
+│   └── report_agent.py                  # Report generation
+├── reports/                              # Generated reports
+└── requirements.txt
+```
+
+### 🚀 Features
+
+#### Multi-Agent Architecture
+
+**1. Search Agent**
+- **NewsAPI Integration**: Fetches articles by topic and date range
+- **GPT-Powered Ranking**: Uses LLM to evaluate article relevance
+- **Source Evaluation**: Assesses credibility and quality
+- **Smart Filtering**: Returns only the most relevant articles
+
+```python
+class SearchAgent(BaseAgent):
+    async def process(self, query: Dict[str, str]) -> List[Dict]:
+        # Fetch articles from NewsAPI
+        raw_articles = await self._fetch_articles(query)
+        
+        # Use GPT to rank by relevance
+        ranked_articles = await self._rank_articles(raw_articles, query['topic'])
+        
+        return ranked_articles[:MAX_ARTICLES_PER_SEARCH]
+```
+
+**2. Analysis Agent**
+- **Article Summarization**: Concise summaries of each article
+- **Key Point Extraction**: Identifies main takeaways
+- **Sentiment Analysis**: Scores sentiment (-1 to 1)
+- **Topic Identification**: Extracts main themes
+- **Bias Detection**: Identifies potential biases
+- **Overall Analysis**: Synthesizes findings across articles
+
+```python
+class AnalysisAgent(BaseAgent):
+    async def process(self, articles: List[Dict]) -> Dict:
+        results = {
+            'summaries': [],
+            'key_points': [],
+            'sentiment': [],
+            'topics': [],
+            'biases': []
+        }
+        
+        # Analyze each article
+        for article in articles:
+            analysis = await self._analyze_article(article)
+            results['summaries'].append(analysis['summary'])
+            # ... collect other metrics
+        
+        # Perform overall analysis
+        results['overall_analysis'] = await self._perform_overall_analysis(results)
+        
+        return results
+```
+
+**3. Report Agent**
+- **Executive Summary**: High-level findings
+- **Detailed Analysis**: In-depth topic and source analysis
+- **Recommendations**: Actionable insights
+- **Source Attribution**: Full citation tracking
+- **Markdown Formatting**: Professional output
+
+#### Workflow Orchestration
+
+```python
+class NewsResearchCoordinatorLight:
+    async def research_topic(self, topic: str, time_range: Dict[str, str] = None) -> Dict:
+        # Step 1: Search for articles
+        articles = await self.search_agent.process({
+            'topic': topic,
+            'time_range': time_range
+        })
+        
+        # Step 2: Analyze articles
+        analysis_results = await self.analysis_agent.process(articles)
+        
+        # Step 3: Generate report
+        report_data = {
+            'topic': topic,
+            'timestamp': datetime.now().isoformat(),
+            'articles': articles,
+            'analysis': analysis_results
+        }
+        final_report = await self.report_agent.process(report_data)
+        
+        # Format and save
+        markdown_content = self._format_report_markdown(final_report, topic)
+        filename = self._save_report(markdown_content, topic)
+        
+        return final_report
+```
+
+### 💡 Use Cases
+
+**Business Intelligence:**
+- Competitive analysis
+- Market trend monitoring
+- Industry news tracking
+- Brand sentiment analysis
+
+**Research:**
+- Literature review automation
+- Topic exploration
+- Source credibility assessment
+- Trend identification
+
+**Journalism:**
+- Story research
+- Source gathering
+- Fact-checking
+- Bias detection
+
+**Investment:**
+- Market sentiment analysis
+- Company news monitoring
+- Industry trend tracking
+- Risk assessment
+
+### 🎨 Report Structure
+
+**Generated Report Includes:**
+
+1. **Executive Summary**
+   - Main findings
+   - Key trends
+   - Critical insights
+   - Reliability assessment
+
+2. **Detailed Analysis**
+   - Topic analysis (main topics, relationships, emerging themes)
+   - Source analysis (distribution, credibility, biases)
+   - Sentiment overview
+   - Conflicting viewpoints
+
+3. **Recommendations**
+   - Prioritized action items
+   - Rationale for each recommendation
+   - Implementation considerations
+
+4. **Source Citations**
+   - Full article references
+   - Publication dates
+   - Source credibility notes
+
+### 📊 Technical Architecture
+
+**Async/Await Pattern:**
+```python
+async def main():
+    coordinator = NewsResearchCoordinatorLight()
+    
+    report = await coordinator.research_topic(
+        topic="Artificial Intelligence Ethics",
+        time_range={'start': '2025-05-17', 'end': '2025-05-19'}
+    )
+```
+
+**Progress Tracking:**
+```python
+# Visual progress bars for each stage
+search_pbar = tqdm(total=1, desc="🔍 Searching for articles", position=0)
+analysis_pbar = tqdm(total=1, desc="📊 Analyzing articles", position=1)
+report_pbar = tqdm(total=1, desc="📝 Generating final report", position=2)
+```
+
+**Error Handling:**
+- Graceful degradation
+- Default values for failed analyses
+- Comprehensive error logging
+- Retry logic for API calls
+
+### 🛠️ Usage Examples
+
+**Basic Usage:**
+```python
+import asyncio
+from news_research_coordinator_light import NewsResearchCoordinatorLight
+
+async def main():
+    coordinator = NewsResearchCoordinatorLight()
+    
+    report = await coordinator.research_topic(
+        topic="Climate Change Technology",
+        time_range={
+            'start': '2025-01-01',
+            'end': '2025-01-31'
+        }
+    )
+    
+    print(f"Report saved to: {report['filename']}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**Custom Configuration:**
+```python
+# config.py
+MAX_ARTICLES_PER_SEARCH = 10
+OPENAI_MODEL = "gpt-4o-mini"
+NEWS_API_KEY = "your-key-here"
+
+SEARCH_AGENT_PROMPT = "You are an expert news curator..."
+ANALYSIS_AGENT_PROMPT = "You are an expert content analyst..."
+REPORT_AGENT_PROMPT = "You are an expert research report writer..."
+```
+
+### 📋 Prerequisites
+
+**Required:**
+- OpenAI API key
+- NewsAPI key (free tier available at [newsapi.org](https://newsapi.org))
+- Python 3.8+
+
+**Python Packages:**
+```bash
+pip install openai newsapi-python python-dotenv tqdm asyncio
+```
+
+**Environment Variables:**
+```env
+OPENAI_API_KEY=your-openai-key
+NEWS_API_KEY=your-newsapi-key
+```
+
+### 🎯 Key Features
+
+**Intelligent Article Ranking:**
+- GPT evaluates relevance, credibility, and quality
+- Scores articles on multiple dimensions
+- Filters out low-quality sources
+
+**Comprehensive Analysis:**
+- Multi-dimensional article evaluation
+- Cross-article synthesis
+- Bias and sentiment tracking
+- Topic clustering
+
+**Professional Output:**
+- Markdown formatted reports
+- Automatic file naming with timestamps
+- Source attribution
+- Executive summaries
+
+**Scalable Architecture:**
+- Async/await for performance
+- Modular agent design
+- Easy to extend with new agents
+- Configurable parameters
+
+### 🔍 Advanced Features
+
+**JSON Response Parsing:**
+```python
+async def _parse_json_response(self, response: str, default_value: Any) -> Any:
+    """Safely parse JSON from LLM response with fallback."""
+    try:
+        # Try to extract JSON from markdown code blocks
+        if "```json" in response:
+            json_str = response.split("```json")[1].split("```")[0].strip()
+        else:
+            json_str = response.strip()
+        
+        return json.loads(json_str)
+    except Exception as e:
+        print(f"Error parsing JSON: {str(e)}")
+        return default_value
+```
+
+**Progress Visualization:**
+- Real-time progress bars
+- Stage-by-stage updates
+- Article-by-article tracking
+- Time estimates
+
+**Report Persistence:**
+- Automatic report saving
+- Organized file structure
+- Timestamp-based naming
+- Markdown format for easy sharing
+
+### 💰 Cost Considerations
+
+**NewsAPI:**
+- Free tier: 100 requests/day
+- Developer tier: $449/month (unlimited)
+
+**OpenAI:**
+- GPT-4o-mini: ~$0.15 per report (typical)
+- GPT-4o: ~$1.50 per report (higher quality)
+
+**Optimization Tips:**
+- Use GPT-4o-mini for cost savings
+- Limit articles per search
+- Cache article analyses
+- Batch API calls
+
+### 🚀 Future Enhancements
+
+**Potential Additions:**
+- Web scraping for full article content
+- Multi-language support
+- Custom source lists
+- Historical trend analysis
+- Interactive web UI
+- Email report delivery
+- Scheduled automated research
+
+---
+
 ## Getting Started
 
 ### Installation
@@ -826,6 +1874,30 @@ For Python to C++ Converter (Project 4):
 pip install openai anthropic gradio python-dotenv
 ```
 
+For Local RAG Assistant (Project 5):
+```bash
+pip install langchain langchain-openai langchain-anthropic langchain-chroma
+pip install sentence-transformers chromadb pypdf docx2txt chardet
+pip install scikit-learn plotly gradio python-dotenv
+```
+
+For LangGraph (Project 6):
+```bash
+pip install langgraph langchain-openai python-dotenv
+```
+
+For RAG Solutions (Project 7):
+```bash
+pip install langchain langchain-openai langchain-chroma
+pip install sentence-transformers chromadb faiss-cpu
+pip install pypdf docx2txt scikit-learn plotly gradio python-dotenv
+```
+
+For News Research Assistant (Project 8):
+```bash
+pip install openai newsapi-python python-dotenv tqdm asyncio
+```
+
 **C++ Compiler Installation:**
 
 macOS:
@@ -855,6 +1927,9 @@ ANTHROPIC_API_KEY=your-key-here
 
 # For HuggingFace projects
 HF_TOKEN=your-token-here
+
+# For News Research Assistant (Project 8)
+NEWS_API_KEY=your-newsapi-key-here
 ```
 
 ### Running the Projects
@@ -880,9 +1955,10 @@ jupyter notebook
 - Internet connection (for cloud models)
 
 ### API Keys Required
-- **OpenAI**: For GPT-4o-mini models
-- **Anthropic**: For Claude models (optional)
-- **HuggingFace**: For downloading open-source models (optional)
+- **OpenAI**: For GPT models (Projects 1-8)
+- **Anthropic**: For Claude models (Projects 1-5, optional)
+- **HuggingFace**: For open-source models (Projects 2-3, optional)
+- **NewsAPI**: For news article search (Project 8, free tier available)
 
 ### Hardware Recommendations
 
@@ -901,6 +1977,11 @@ jupyter notebook
 - Quad-core processor
 - 16GB RAM
 - SSD for faster compilation
+
+**For RAG Projects (5 & 7):**
+- 8GB+ RAM (for vector databases)
+- 5GB+ free disk space (for embeddings and databases)
+- SSD recommended for faster retrieval
 
 ---
 
@@ -941,23 +2022,48 @@ jupyter notebook
 - Monitor endpoint logs for errors
 - Remember to pause endpoints when not in use to avoid charges
 
+### RAG/Vector Database Issues
+- **Chroma DB**: Ensure persist_directory has write permissions
+- **FAISS**: May require `faiss-gpu` for GPU support
+- **Embeddings**: First run downloads models (~500MB)
+- **Memory**: Large document collections may require more RAM
+- Clear old databases if encountering corruption
+
+### LangGraph Issues
+- Ensure `langgraph` and `langchain-openai` versions are compatible
+- Check that state TypedDict matches node return types
+- Verify conditional edge return types match Literal types
+- Use `graph.get_graph().draw_mermaid_png()` to debug structure
+
+### News Research Assistant Issues
+- **NewsAPI**: Free tier limited to 100 requests/day
+- **Rate Limits**: Add delays between API calls if hitting limits
+- **Async Issues**: Ensure using `asyncio.run()` for async functions
+- **JSON Parsing**: LLM responses may need retry logic
+
 ---
 
 ## 📚 Learning Resources
 
 These projects demonstrate key LLM engineering concepts:
 - **Prompt Engineering**: System and user prompts
-- **API Integration**: Multiple LLM providers
+- **API Integration**: Multiple LLM providers (OpenAI, Anthropic, HuggingFace)
 - **Web Scraping**: Practical data extraction
-- **Streaming Responses**: Real-time output
+- **Streaming Responses**: Real-time output generation
 - **Code Generation**: LLM-generated executable code
 - **Code Execution**: Running generated code safely
 - **Model Quantization**: Efficient model deployment
 - **Model Deployment**: Production deployment with HuggingFace
-- **Agentic Patterns**: Multi-step LLM workflows
+- **Agentic Patterns**: Multi-step LLM workflows and multi-agent systems
+- **RAG (Retrieval-Augmented Generation)**: Vector databases and semantic search
+- **Vector Embeddings**: Document embeddings and similarity search
+- **LangGraph**: Stateful graph-based agent workflows
+- **LangChain**: Chains, memory, and retrieval
 - **Performance Optimization**: Python to C++ conversion
 - **Cross-Platform Development**: Multi-OS compiler support
 - **Interactive UIs**: Gradio web interfaces
+- **Async Programming**: Concurrent API calls and processing
+- **Data Visualization**: t-SNE, Plotly, and embedding visualizations
 
 ---
 
@@ -983,15 +2089,21 @@ This project is provided for educational purposes. Please ensure compliance with
 
 ## 🙏 Acknowledgments
 
-- OpenAI for GPT models
-- Anthropic for Claude models
-- Meta for Llama models
-- DeepSeek for reasoning models
-- HuggingFace for model hosting and inference endpoints
-- Ollama for local model serving
-- Qwen team for CodeQwen models
-- Google for CodeGemma models
-- Gradio team for the UI framework
+- **OpenAI** for GPT models and embeddings
+- **Anthropic** for Claude models
+- **Meta** for Llama models
+- **DeepSeek** for reasoning models
+- **HuggingFace** for model hosting, inference endpoints, and sentence transformers
+- **Ollama** for local model serving
+- **Qwen team** for CodeQwen models
+- **Google** for CodeGemma models
+- **Gradio** for the UI framework
+- **LangChain** for the orchestration framework
+- **LangGraph** for stateful agent workflows
+- **Chroma** for vector database
+- **FAISS** (Facebook AI) for similarity search
+- **NewsAPI** for news article access
+- **Sentence Transformers** for embedding models
 
 ---
 
